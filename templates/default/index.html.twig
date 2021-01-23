@@ -1,0 +1,13 @@
+{% extends 'base.html.twig' %}
+
+{% block body %}
+    <h1>Fioulmarket - Test</h1>
+
+    <div class="gallery cf">
+        {% for image in images %}
+            <div>
+                <img src="{{ image }}" title="{{ image }}"/>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
