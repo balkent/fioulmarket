@@ -4,61 +4,10 @@ namespace App\Service;
 
 class Image
 {
-    public function run()
+    public function run(): array
     {
-        $I = 0;
-        $ls = array();
-        //recupere liens flux rss avec images
-        try {
-            $c = curl_init();
-            curl_setopt_array($c, array(CURLOPT_URL => 'http://www.commitstrip.com/en/feed/', CURLOPT_RETURNTRANSFER => TRUE,));
-            $d = curl_exec($c);
-            curl_close($c);
-            $x = simplexml_load_string($d, 'SimpleXMLElement', LIBXML_NOCDATA);
-            $c = $x->channel;
-            $n = count($x->channel->item);
-            for ($I = 1; $I < $n; $I++) {
-                $h = $c->item[$I]->link;;
-                ${"ls"}[$I] = (string)$h[0];
-            }
-            for ($I = 1; $I < count($x->channel->item); $I++) {
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'jpg') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'JPG') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'GIF') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'gif') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'PNG') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), '.png') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-            }
-        } catch (\Exception $e) {
-            // do nothing
-        }
-
-        //recpere liens api json avec image
-        $j = "";
-        $h = @fopen("https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0", "r");
-        while ($b = fgets($h, 4096)) {
-            $j .= $b;
-        }
-        $j = json_decode($j);
-        for ($II = $I + 1; $II < count($j->articles); $II++) {
-            if ($j->articles[$II]->urlToImage == "" || empty($j->articles[$II]->urlToImage) || strlen($j->articles[$II]->urlToImage) == 0) {
-                continue;
-            }
-            $h = $j->articles[$II]->url;
-            ${"ls2"}[$II] = $h;
-        }
+        $ls = $this->getImageByRSS();
+        $ls2 = $this->getImageByAPI();
 
         //on fait un de doublonnage
         foreach ($ls as $k => $v) {
@@ -84,6 +33,75 @@ class Image
         }
 
         return $images;
+    }
+
+    /**
+     * recupere liens flux rss avec images
+     */
+    public function getImageByRSS(): array
+    {
+        $ls = array();
+        try {
+            $c = curl_init();
+            curl_setopt_array($c, array(CURLOPT_URL => 'http://www.commitstrip.com/en/feed/', CURLOPT_RETURNTRANSFER => TRUE,));
+            $d = curl_exec($c);
+            curl_close($c);
+            $x = simplexml_load_string($d, 'SimpleXMLElement', LIBXML_NOCDATA);
+            $c = $x->channel;
+            $n = count($x->channel->item);
+            for ($I = 1; $I < $n; $I++) {
+                $h = $c->item[$I]->link;;
+                $ls[$I] = (string)$h[0];
+            }
+            for ($I = 1; $I < count($x->channel->item); $I++) {
+                if (!!substr_count((string)$c->item[$I]->children("content", true), 'jpg') < 0) {
+                    $ls[$I] = "";
+                }
+                if (!!substr_count((string)$c->item[$I]->children("content", true), 'JPG') < 0) {
+                    $ls[$I] = "";
+                }
+                if (!!substr_count((string)$c->item[$I]->children("content", true), 'GIF') < 0) {
+                    $ls[$I] = "";
+                }
+                if (!!substr_count((string)$c->item[$I]->children("content", true), 'gif') < 0) {
+                    $ls[$I] = "";
+                }
+                if (!!substr_count((string)$c->item[$I]->children("content", true), 'PNG') < 0) {
+                    $ls[$I] = "";
+                }
+                if (!!substr_count((string)$c->item[$I]->children("content", true), '.png') < 0) {
+                    $ls[$I] = "";
+                }
+            }
+        } catch (\Exception $e) {
+            // do nothing
+        }
+
+        return $ls;
+    }
+
+    /**
+     * recpere liens api json avec image
+     */
+    public function getImageByAPI(): array
+    {
+        $ls2 = array();
+        $j = "";
+        $I = 0;
+        $h = @fopen("https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0", "r");
+        while ($b = fgets($h, 4096)) {
+            $j .= $b;
+        }
+        $j = json_decode($j);
+        for ($II = $I + 1; $II < count($j->articles); $II++) {
+            if ($j->articles[$II]->urlToImage == "" || empty($j->articles[$II]->urlToImage) || strlen($j->articles[$II]->urlToImage) == 0) {
+                continue;
+            }
+            $h = $j->articles[$II]->url;
+            $ls2[$II] = $h;
+        }
+
+        return $ls2;
     }
 
     public function doublon($t1, $t2)
