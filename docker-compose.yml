@@ -1,0 +1,18 @@
+version: "3.6"
+
+services:
+  http:
+    container_name: test_fioulmarket
+    image: lordxase/site_v3_api_docker:php-7.4.14
+    ports:
+      - "20000:80"
+    volumes:
+      - .:/var/www/html
+    environment:
+      - ALLOW_OVERRIDE=true
+      - SECRET=AAAAAAAAAAAA
+    networks:
+      - backend
+
+networks:
+  backend:
