@@ -36,7 +36,7 @@ class Image
         while ($j < count($f)) {
             if (isset($f[$j])) {
                 try {
-                    $images[] = $this->recupereimagedanspage($f[$j]);
+                    $images[] = $this->getImageInPage($f[$j]['page']);
                 } catch (\Exception $e) { /* erreur */
                 }
             }
@@ -130,25 +130,25 @@ class Image
         return $doublon;
     }
 
-    public function recupereimagedanspage($l)
+    public function getImageInPage(string $url)
     {
-        $l = $l['page'];
-        if (strstr($l, "commitstrip.com")) {
-            $doc = new \DomDocument();
-            @$doc->loadHTMLFile($l);
-            $xpath = new \DomXpath($doc);
-            $xq = $xpath->query('//img[contains(@class,"size-full")]/@src');
-            $src = $xq[0]->value;
+        $query = $this->getQueryByURL($url);
+        $doc = new \DomDocument();
+        @$doc->loadHTMLFile($url);
+        $xpath = new \DomXpath($doc);
+        $xq = $xpath->query($query);
+        $src = $xq[0]->value;
 
-            return $src;
-        } else {
-            $doc = new \DomDocument();
-            @$doc->loadHTMLFile($l);
-            $xpath = new \DomXpath($doc);
-            $xq = $xpath->query('//img/@src');
-            $src = $xq[0]->value;
+        return $src;
+    }
 
-            return $src;
+    public function getQueryByURL(string $url): string
+    {
+        if (strstr($url, "commitstrip.com")) {
+            return '//img[contains(@class,"size-full")]/@src';
         }
+
+        return'//img/@src';
+
     }
 }
