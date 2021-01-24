@@ -10,10 +10,7 @@ class Image
     {
         $ls = $this->getImageByRSS('http://www.commitstrip.com/en/feed/');
         $ls2 = $this->getImageByAPI();
-
-        // dump($ls);
-        // dump($ls2);
-        // exit();
+        
 
         //on fait un de doublonnage
         foreach ($ls as $k => $v) {
@@ -46,15 +43,26 @@ class Image
      */
     public function getImageByRSS(string $url): array
     {
-        $ls = array();
-        $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, true);
+        $mineTypes = ['jpg', 'gif', 'png'];
+        $images = array();
+        $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, TRUE);
         $xmlItems = $xmlElement->channel->item;
 
         foreach ($xmlItems as $xmlItem) {
-            $ls[] = (string) $xmlItem->link;
+            $image = [];
+            $image['page'] = (string) $xmlItem->link;
+            $xmlItemAttributes = $xmlItem->children("media", true)->content->attributes();
+            $xmlUrlImage = (string) $xmlItemAttributes['url'];
+            foreach ($mineTypes as $mineType) {
+                if (substr_count($xmlUrlImage, '.' . strtolower($mineType)) > 0 || substr_count($xmlUrlImage, '.' . strtoupper($mineType)) > 0) {
+                    $image['item'] = $xmlUrlImage;
+                }
+            }
+
+            $images[] = $image;
         }
 
-        return $ls;
+        return $images;
     }
 
     /**
