@@ -4,13 +4,21 @@ declare(strict_types=1);
 
 namespace App\Service;
 
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
 class Image
 {
+    private $client;
+
+    public function __construct(HttpClientInterface $client)
+    {
+        $this->client = $client;
+    }
+
     public function run(): array
     {
         $ls = $this->getImageByRSS('http://www.commitstrip.com/en/feed/');
-        $ls2 = $this->getImageByAPI();
-        
+        $ls2 = $this->getImageByAPI('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0');
 
         //on fait un de doublonnage
         foreach ($ls as $k => $v) {
@@ -43,20 +51,18 @@ class Image
      */
     public function getImageByRSS(string $url): array
     {
-        $mineTypes = ['jpg', 'gif', 'png'];
-        $images = array();
+        $images = [];
         $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, TRUE);
-        $xmlItems = $xmlElement->channel->item;
+        $items = $xmlElement->channel->item;
+        $pageAtt = 'link';
 
-        foreach ($xmlItems as $xmlItem) {
+        foreach ($items as $item) {
             $image = [];
-            $image['page'] = (string) $xmlItem->link;
-            $xmlItemAttributes = $xmlItem->children("media", true)->content->attributes();
-            $xmlUrlImage = (string) $xmlItemAttributes['url'];
-            foreach ($mineTypes as $mineType) {
-                if (substr_count($xmlUrlImage, '.' . strtolower($mineType)) > 0 || substr_count($xmlUrlImage, '.' . strtoupper($mineType)) > 0) {
-                    $image['item'] = $xmlUrlImage;
-                }
+            $image['page'] = (string) $item->$pageAtt;
+            $itemAttributes = $item->children("media", true)->content->attributes();
+            $urlImage = (string) $itemAttributes['url'];
+            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
+                $image['item'] = $urlImage;
             }
 
             $images[] = $image;
@@ -68,25 +74,47 @@ class Image
     /**
      * recpere liens api json avec image
      */
-    public function getImageByAPI(): array
+    public function getImageByAPI(string $url): array
     {
-        $ls2 = array();
-        $j = "";
-        $i = 0;
-        $h = @fopen("https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0", "r");
-        while ($b = fgets($h, 4096)) {
-            $j .= $b;
-        }
-        $j = json_decode($j);
-        for ($ii = $i + 1; $ii < count($j->articles); $ii++) {
-            if ($j->articles[$ii]->urlToImage == "" || empty($j->articles[$ii]->urlToImage) || strlen($j->articles[$ii]->urlToImage) == 0) {
-                continue;
+        $images = [];
+        $response = $this->client->request(
+            'GET',
+            $url,
+            [
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ]
+        );
+        $content = json_decode($response->getContent());
+        $items = $content->articles;
+        $pageAtt = 'url';
+
+        foreach ($items as $item) {
+            $image = [];
+            $image['page'] = (string) $item->$pageAtt;
+            $urlImage = $item->urlToImage;
+            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
+                $image['item'] = $urlImage;
             }
-            $h = $j->articles[$ii]->url;
-            $ls2[$ii] = $h;
+
+            $images[] = $image;
         }
 
-        return $ls2;
+        return $images;
+    }
+
+    public function hasMineTypeAccepted(string $url): bool
+    {
+        $mineTypes = ['jpg', 'gif', 'png'];
+
+        foreach ($mineTypes as $mineType) {
+            if (substr_count($url, '.' . strtolower($mineType)) > 0 || substr_count($url, '.' . strtoupper($mineType)) > 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function doublon($t1, $t2)
@@ -104,6 +132,7 @@ class Image
 
     public function recupereimagedanspage($l)
     {
+        $l = $l['page'];
         if (strstr($l, "commitstrip.com")) {
             $doc = new \DomDocument();
             @$doc->loadHTMLFile($l);
