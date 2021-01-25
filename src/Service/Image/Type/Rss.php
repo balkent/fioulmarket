@@ -7,6 +7,7 @@ namespace App\Service\Image\Type;
 class Rss extends Type
 {
     protected $pageAtt = 'link';
+    protected $query = '//img[contains(@class,"size-full")]/@src';
 
     /**
      * get url images from rss feed links

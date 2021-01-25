@@ -9,6 +9,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class Api extends Type
 {
     protected $pageAtt = 'url';
+    protected $query = '//img/@src';
 
     private $client;
 

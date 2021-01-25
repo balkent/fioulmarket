@@ -35,11 +35,10 @@ class Type
      */
     protected function getImageInPage(string $url): ?string
     {
-        $query = $this->getQueryByURL($url);
         $doc   = new \DomDocument();
         @$doc->loadHTMLFile($url);
         $xpath = new \DomXpath($doc);
-        $xq    = $xpath->query($query);
+        $xq    = $xpath->query($this->query);
 
         if ($xq->length > 0) {
             return $xq[0]->value;
@@ -63,21 +62,5 @@ class Type
         }
 
         return $images;
-    }
-
-    /**
-     * get the query for get image on web
-     *
-     * @param   string  $url
-     *
-     * @return  string  the query
-     */
-    protected function getQueryByURL(string $url): string
-    {
-        if (strstr($url, "commitstrip.com")) {
-            return '//img[contains(@class,"size-full")]/@src';
-        }
-
-        return '//img/@src';
     }
 }
