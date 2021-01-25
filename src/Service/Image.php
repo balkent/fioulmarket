@@ -46,15 +46,16 @@ class Image
      */
     public function getImageByRSS(string $url): array
     {
-        $images = [];
+        $images     = [];
         $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, TRUE);
-        $items = $xmlElement->channel->item;
-        $pageAtt = 'link';
+        $items      = $xmlElement->channel->item;
+        $pageAtt    = 'link';
 
         foreach ($items as $item) {
-            $images[] = $this->getImageInPage((string) $item->$pageAtt);
+            $images[]       = $this->getImageInPage((string) $item->$pageAtt);
             $itemAttributes = $item->children("media", true)->content->attributes();
-            $urlImage = (string) $itemAttributes['url'];
+            $urlImage       = (string) $itemAttributes['url'];
+
             if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
                 $images[] = $urlImage;
             }
@@ -68,7 +69,7 @@ class Image
      */
     public function getImageByAPI(string $url): array
     {
-        $images = [];
+        $images   = [];
         $response = $this->client->request(
             'GET',
             $url,
@@ -79,7 +80,7 @@ class Image
             ]
         );
         $content = json_decode($response->getContent());
-        $items = $content->articles;
+        $items   = $content->articles;
         $pageAtt = 'url';
 
         foreach ($items as $item) {
@@ -109,10 +110,10 @@ class Image
     public function getImageInPage(string $url)
     {
         $query = $this->getQueryByURL($url);
-        $doc = new \DomDocument();
+        $doc   = new \DomDocument();
         @$doc->loadHTMLFile($url);
         $xpath = new \DomXpath($doc);
-        $xq = $xpath->query($query);
+        $xq    = $xpath->query($query);
 
         if ($xq->length > 0) {
             return $xq[0]->value;
