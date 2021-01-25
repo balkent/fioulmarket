@@ -17,10 +17,12 @@ class Image
 
     public function run(): array
     {
-        $ls = $this->getImage('http://www.commitstrip.com/en/feed/', 'RSS');
-        $ls2 = $this->getImage('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0', 'API');
+        $imagelistRss = $this->getImage('http://www.commitstrip.com/en/feed/', 'RSS');
+        $imagelistApi = $this->getImage('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0', 'API');
 
-        return array_merge($ls, $ls2);
+        $images = array_merge($imagelistRss, $imagelistApi);
+
+        return array_unique($images);
     }
 
     public function getImage(string $url, string $type): array
@@ -102,19 +104,6 @@ class Image
         }
 
         return false;
-    }
-
-    public function doublon($t1, $t2)
-    {
-        foreach ($t1 as $k1 => $v1) {
-            $doublon = 0;
-            foreach ($t2 as $v2) {
-                if ($v2 == $v1) {
-                    $doublon = 1;
-                }
-            }
-        }
-        return $doublon;
     }
 
     public function getImageInPage(string $url)
