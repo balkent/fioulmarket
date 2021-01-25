@@ -15,14 +15,14 @@ class Image
         $this->client = $client;
     }
 
-    public function run(): array
+    public function run(array $urls): array
     {
-        $imagelistRss = $this->getImage('http://www.commitstrip.com/en/feed/', 'RSS');
-        $imagelistApi = $this->getImage('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0', 'API');
+        $imageList = [];
+        foreach ($urls as $url => $type) {
+            $imageList = array_merge($imageList, $this->getImage($url, $type));
+        }
 
-        $images = array_merge($imagelistRss, $imagelistApi);
-
-        return array_unique($images);
+        return array_unique($imageList);
     }
 
     public function getImage(string $url, string $type): array

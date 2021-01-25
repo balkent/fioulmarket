@@ -17,7 +17,11 @@ class Home extends AbstractController
      */
     public function __invoke(Request $request, Image $image)
     {
-        $images = $image->run();
+        $urls = [
+            'http://www.commitstrip.com/en/feed/' => 'RSS',
+            'https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0' => 'API',
+        ];
+        $images = $image->run($urls);
 
         return $this->render('default/index.html.twig', array('images' => $images));
     }
