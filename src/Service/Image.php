@@ -1,122 +1,183 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Service;
 
+use Symfony\Contracts\HttpClient\HttpClientInterface;
+
+/**
+ * Class for get images by url
+ */
 class Image
 {
-    public function run()
+    private $client;
+
+    /**
+     * @param   HttpClientInterface  $client
+     */
+    public function __construct(HttpClientInterface $client)
     {
-        $I = 0;
-        $ls = array();
-        //recupere liens flux rss avec images
-        try {
-            $c = curl_init();
-            curl_setopt_array($c, array(CURLOPT_URL => 'http://www.commitstrip.com/en/feed/', CURLOPT_RETURNTRANSFER => TRUE,));
-            $d = curl_exec($c);
-            curl_close($c);
-            $x = simplexml_load_string($d, 'SimpleXMLElement', LIBXML_NOCDATA);
-            $c = $x->channel;
-            $n = count($x->channel->item);
-            for ($I = 1; $I < $n; $I++) {
-                $h = $c->item[$I]->link;;
-                ${"ls"}[$I] = (string)$h[0];
-            }
-            for ($I = 1; $I < count($x->channel->item); $I++) {
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'jpg') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'JPG') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'GIF') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'gif') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), 'PNG') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-                if (!!substr_count((string)$c->item[$I]->children("content", true), '.png') < 0) {
-                    ${"ls"}[$I] = "";
-                }
-            }
-        } catch (\Exception $e) {
-            // do nothing
+        $this->client = $client;
+    }
+
+    /**
+     * entrypoint of this class
+     *
+     * @param   array  $urls  array of url to get images
+     *
+     * @return  array  array of sort and unique url image
+     */
+    public function run(array $urls): array
+    {
+        $imageList = [];
+        foreach ($urls as $url => $type) {
+            $imageList = array_merge($imageList, $this->getImage($url, $type));
         }
 
-        //recpere liens api json avec image
-        $j = "";
-        $h = @fopen("https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0", "r");
-        while ($b = fgets($h, 4096)) {
-            $j .= $b;
-        }
-        $j = json_decode($j);
-        for ($II = $I + 1; $II < count($j->articles); $II++) {
-            if ($j->articles[$II]->urlToImage == "" || empty($j->articles[$II]->urlToImage) || strlen($j->articles[$II]->urlToImage) == 0) {
-                continue;
-            }
-            $h = $j->articles[$II]->url;
-            ${"ls2"}[$II] = $h;
+        return array_unique($imageList);
+    }
+
+    /**
+     * switcher for type of url
+     *
+     * @param   string  $url
+     * @param   string  $type  RSS|API
+     *
+     * @return  array empty|array of images by url
+     */
+    public function getImage(string $url, string $type): array
+    {
+        switch ($type) {
+            case 'RSS':
+                return $this->getImageByRSS($url);
+                break;
+
+            case 'API':
+                return $this->getImageByAPI($url);
+                break;
         }
 
-        //on fait un de doublonnage
-        foreach ($ls as $k => $v) {
-            if (empty($f)) $f = array();
-            if ($this->doublon($ls, $ls2) == false) $f[$k] = $v;
-        }
-        foreach ($ls2 as $k2 => $v2) {
-            if (empty($f)) $f = array();
-            if ($this->doublon($ls2, $ls) == false) $f[$k2] = $v2;
-        }
+        return [];
+    }
 
-        //recupere dans chaque url l'image
-        $j = 0;
-        $images = array();
-        while ($j < count($f)) {
-            if (isset($f[$j])) {
-                try {
-                    $images[] = $this->recupereimagedanspage($f[$j]);
-                } catch (\Exception $e) { /* erreur */
-                }
+    /**
+     * get url images from rss feed links
+     *
+     * @param   string  $url
+     *
+     * @return  array  array of url images by rss
+     */
+    public function getImageByRSS(string $url): array
+    {
+        $images     = [];
+        $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, TRUE);
+        $items      = $xmlElement->channel->item;
+        $pageAtt    = 'link';
+
+        foreach ($items as $item) {
+            $images[]       = $this->getImageInPage((string) $item->$pageAtt);
+            $itemAttributes = $item->children("media", true)->content->attributes();
+            $urlImage       = (string) $itemAttributes['url'];
+
+            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
+                $images[] = $urlImage;
             }
-            $j++;
         }
 
         return $images;
     }
 
-    public function doublon($t1, $t2)
+    /**
+     * get url images from api feed links
+     *
+     * @param   string  $url
+     *
+     * @return  array array of url images by api
+     */
+    public function getImageByAPI(string $url): array
     {
-        foreach ($t1 as $k1 => $v1) {
-            $doublon = 0;
-            foreach ($t2 as $v2) {
-                if ($v2 == $v1) {
-                    $doublon = 1;
-                }
+        $images   = [];
+        $response = $this->client->request(
+            'GET',
+            $url,
+            [
+                'headers' => [
+                    'Accept' => 'application/json',
+                ],
+            ]
+        );
+        $content = json_decode($response->getContent());
+        $items   = $content->articles;
+        $pageAtt = 'url';
+
+        foreach ($items as $item) {
+            $images[] = $this->getImageInPage((string) $item->$pageAtt);
+            $urlImage = $item->urlToImage;
+            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
+                $images[] = $urlImage;
             }
         }
-        return $doublon;
+
+        return $images;
     }
 
-    public function recupereimagedanspage($l)
+    /**
+     * for yes or no url is accepted image type
+     *
+     * @param   string  $url
+     *
+     * @return  bool
+     */
+    public function hasMineTypeAccepted(string $url): bool
     {
-        if (strstr($l, "commitstrip.com")) {
-            $doc = new \DomDocument();
-            @$doc->loadHTMLFile($l);
-            $xpath = new \DomXpath($doc);
-            $xq = $xpath->query('//img[contains(@class,"size-full")]/@src');
-            $src = $xq[0]->value;
+        $mineTypes = ['jpg', 'gif', 'png'];
 
-            return $src;
-        } else {
-            $doc = new \DomDocument();
-            @$doc->loadHTMLFile($l);
-            $xpath = new \DomXpath($doc);
-            $xq = $xpath->query('//img/@src');
-            $src = $xq[0]->value;
-
-            return $src;
+        foreach ($mineTypes as $mineType) {
+            if (substr_count($url, '.' . strtolower($mineType)) > 0 || substr_count($url, '.' . strtoupper($mineType)) > 0) {
+                return true;
+            }
         }
+
+        return false;
+    }
+
+    /**
+     * get the image url by web page
+     *
+     * @param   string  $url
+     *
+     * @return  null|string
+     */
+    public function getImageInPage(string $url): ?string
+    {
+        $query = $this->getQueryByURL($url);
+        $doc   = new \DomDocument();
+        @$doc->loadHTMLFile($url);
+        $xpath = new \DomXpath($doc);
+        $xq    = $xpath->query($query);
+
+        if ($xq->length > 0) {
+            return $xq[0]->value;
+        }
+
+        return null;
+    }
+
+    /**
+     * get the query for get image on web
+     *
+     * @param   string  $url
+     *
+     * @return  string  the query
+     */
+    public function getQueryByURL(string $url): string
+    {
+        if (strstr($url, "commitstrip.com")) {
+            return '//img[contains(@class,"size-full")]/@src';
+        }
+
+        return'//img/@src';
+
     }
 }
