@@ -8,6 +8,8 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 class Api extends Type
 {
+    protected $pageAtt = 'url';
+
     private $client;
 
     /**
@@ -27,7 +29,6 @@ class Api extends Type
      */
     public function handler(string $url): array
     {
-        $images   = [];
         $response = $this->client->request(
             'GET',
             $url,
@@ -39,16 +40,12 @@ class Api extends Type
         );
         $content = json_decode($response->getContent());
         $items   = $content->articles;
-        $pageAtt = 'url';
 
-        foreach ($items as $item) {
-            $images[] = $this->getImageInPage((string) $item->$pageAtt);
-            $urlImage = $item->urlToImage;
-            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
-                $images[] = $urlImage;
-            }
-        }
+        return $this->getImage($items);
+    }
 
-        return $images;
+    public function getUrlImage($item): string
+    {
+        return $item->urlToImage;
     }
 }

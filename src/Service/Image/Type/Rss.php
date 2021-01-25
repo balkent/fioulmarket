@@ -6,6 +6,8 @@ namespace App\Service\Image\Type;
 
 class Rss extends Type
 {
+    protected $pageAtt = 'link';
+
     /**
      * get url images from rss feed links
      *
@@ -15,21 +17,16 @@ class Rss extends Type
      */
     public function handler(string $url): array
     {
-        $images     = [];
         $xmlElement = new \SimpleXMLElement($url, LIBXML_NOCDATA, TRUE);
         $items      = $xmlElement->channel->item;
-        $pageAtt    = 'link';
 
-        foreach ($items as $item) {
-            $images[]       = $this->getImageInPage((string) $item->$pageAtt);
-            $itemAttributes = $item->children("media", true)->content->attributes();
-            $urlImage       = (string) $itemAttributes['url'];
+        return $this->getImage($items);
+    }
 
-            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
-                $images[] = $urlImage;
-            }
-        }
+    public function getUrlImage($item): string
+    {
+        $itemAttributes = $item->children("media", true)->content->attributes();
 
-        return $images;
+        return (string) $itemAttributes['url'];
     }
 }

@@ -15,7 +15,7 @@ class Type
      *
      * @return  bool
      */
-    public function hasMineTypeAccepted(string $url): bool
+    protected function hasMineTypeAccepted(string $url): bool
     {
         foreach ($this->mineTypes as $mineType) {
             if (substr_count($url, '.' . strtolower($mineType)) > 0 || substr_count($url, '.' . strtoupper($mineType)) > 0) {
@@ -33,7 +33,7 @@ class Type
      *
      * @return  null|string
      */
-    public function getImageInPage(string $url): ?string
+    protected function getImageInPage(string $url): ?string
     {
         $query = $this->getQueryByURL($url);
         $doc   = new \DomDocument();
@@ -48,6 +48,23 @@ class Type
         return null;
     }
 
+    protected function getImage($items): array
+    {
+        $images = [];
+
+        foreach ($items as $item) {
+            $att      = $this->pageAtt;
+            $images[] = $this->getImageInPage((string) $item->$att);
+            $urlImage = $this->getUrlImage($item);
+
+            if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
+                $images[] = $urlImage;
+            }
+        }
+
+        return $images;
+    }
+
     /**
      * get the query for get image on web
      *
@@ -55,7 +72,7 @@ class Type
      *
      * @return  string  the query
      */
-    public function getQueryByURL(string $url): string
+    protected function getQueryByURL(string $url): string
     {
         if (strstr($url, "commitstrip.com")) {
             return '//img[contains(@class,"size-full")]/@src';
