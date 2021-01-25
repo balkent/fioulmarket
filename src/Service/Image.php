@@ -17,34 +17,27 @@ class Image
 
     public function run(): array
     {
-        $ls = $this->getImageByRSS('http://www.commitstrip.com/en/feed/');
-        $ls2 = $this->getImageByAPI('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0');
+        $ls = $this->getImage('http://www.commitstrip.com/en/feed/', 'RSS');
+        $ls2 = $this->getImage('https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0', 'API');
 
-        //on fait un de doublonnage
-        foreach ($ls as $k => $v) {
-            if (empty($f)) $f = array();
-            if ($this->doublon($ls, $ls2) == false) $f[$k] = $v;
-        }
-        foreach ($ls2 as $k2 => $v2) {
-            if (empty($f)) $f = array();
-            if ($this->doublon($ls2, $ls) == false) $f[$k2] = $v2;
-        }
-
-        //recupere dans chaque url l'image
-        $j = 0;
-        $images = array();
-        while ($j < count($f)) {
-            if (isset($f[$j])) {
-                try {
-                    $images[] = $this->getImageInPage($f[$j]['page']);
-                } catch (\Exception $e) { /* erreur */
-                }
-            }
-            $j++;
-        }
-
-        return $images;
+        return array_merge($ls, $ls2);
     }
+
+    public function getImage(string $url, string $type): array
+    {
+        switch ($type) {
+            case 'RSS':
+                return $this->getImageByRSS($url);
+                break;
+
+            case 'API':
+                return $this->getImageByAPI($url);
+                break;
+        }
+
+        return [];
+    }
+
 
     /**
      * recupere liens flux rss avec images
@@ -57,15 +50,12 @@ class Image
         $pageAtt = 'link';
 
         foreach ($items as $item) {
-            $image = [];
-            $image['page'] = (string) $item->$pageAtt;
+            $images[] = $this->getImageInPage((string) $item->$pageAtt);
             $itemAttributes = $item->children("media", true)->content->attributes();
             $urlImage = (string) $itemAttributes['url'];
             if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
-                $image['item'] = $urlImage;
+                $images[] = $urlImage;
             }
-
-            $images[] = $image;
         }
 
         return $images;
@@ -91,14 +81,11 @@ class Image
         $pageAtt = 'url';
 
         foreach ($items as $item) {
-            $image = [];
-            $image['page'] = (string) $item->$pageAtt;
+            $images[] = $this->getImageInPage((string) $item->$pageAtt);
             $urlImage = $item->urlToImage;
             if (!empty($urlImage) && $this->hasMineTypeAccepted($urlImage)) {
-                $image['item'] = $urlImage;
+                $images[] = $urlImage;
             }
-
-            $images[] = $image;
         }
 
         return $images;
@@ -137,9 +124,12 @@ class Image
         @$doc->loadHTMLFile($url);
         $xpath = new \DomXpath($doc);
         $xq = $xpath->query($query);
-        $src = $xq[0]->value;
 
-        return $src;
+        if ($xq->length > 0) {
+            return $xq[0]->value;
+        }
+
+        return null;
     }
 
     public function getQueryByURL(string $url): string
