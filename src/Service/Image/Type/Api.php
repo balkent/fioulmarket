@@ -45,7 +45,7 @@ class Api extends Type implements TypeInterface
         return $this->getImage($items);
     }
 
-    public function getUrlImage($item): string
+    public function getUrlImage($item): ?string
     {
         return $item->urlToImage;
     }

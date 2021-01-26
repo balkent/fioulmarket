@@ -24,7 +24,7 @@ class Rss extends Type implements TypeInterface
         return $this->getImage($items);
     }
 
-    public function getUrlImage($item): string
+    public function getUrlImage($item): ?string
     {
         $itemAttributes = $item->children("media", true)->content->attributes();
 
