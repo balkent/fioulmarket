@@ -6,12 +6,12 @@ namespace App\Service\Image\Type;
 
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
-class Api extends Type
+class Api extends Type implements TypeInterface
 {
-    protected $pageAtt = 'url';
-    protected $query = '//img/@src';
+    protected string $pageAtt = 'url';
+    protected string $query = '//img/@src';
 
-    private $client;
+    private HttpClientInterface $client;
 
     /**
      * @param   HttpClientInterface  $client

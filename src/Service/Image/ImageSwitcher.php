@@ -12,12 +12,12 @@ class ImageSwitcher
     /**
      * @var App\Service\Image\Type\Rss
      */
-    private $rssImage;
+    private Rss $rssImage;
 
     /**
      * @var App\Service\Image\Type\Api
      */
-    private $apiImage;
+    private Api $apiImage;
 
     /**
      * @param   Rss  $rssImage

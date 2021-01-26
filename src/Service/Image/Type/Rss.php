@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Service\Image\Type;
 
-class Rss extends Type
+class Rss extends Type implements TypeInterface
 {
-    protected $pageAtt = 'link';
-    protected $query = '//img[contains(@class,"size-full")]/@src';
+    protected string $pageAtt = 'link';
+    protected string $query = '//img[contains(@class,"size-full")]/@src';
 
     /**
      * get url images from rss feed links

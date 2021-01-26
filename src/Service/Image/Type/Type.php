@@ -6,7 +6,7 @@ namespace App\Service\Image\Type;
 
 class Type
 {
-    private $mineTypes = ['jpg', 'gif', 'png'];
+    private array $mineTypes = ['jpg', 'gif', 'png'];
 
     /**
      * for yes or no url is accepted image type
