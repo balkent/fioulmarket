@@ -20,6 +20,9 @@ class Home extends AbstractController
         $urls = [
             'http://www.commitstrip.com/en/feed/' => 'RSS',
             'https://newsapi.org/v2/top-headlines?country=us&apiKey=c782db1cd730403f88a544b75dc2d7a0' => 'API',
+            'https://www.lemonde.fr/rss/une.xml' => 'RSS',
+            'https://www.lemonde.fr/culture/rss_full.xml' => 'RSS',
+            'http://newsapi.org/v2/top-headlines?country=us&category=business&apiKey=c782db1cd730403f88a544b75dc2d7a0' => 'API',
         ];
         $images = $imageCollector->handler($urls);
 
